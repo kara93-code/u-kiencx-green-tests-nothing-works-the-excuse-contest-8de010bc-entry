@@ -3,7 +3,7 @@
 // An AI agent's one-line excuse for a test suite that is all green
 // while the product does nothing. Writes the line to entry.txt.
 
-import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const EXCUSE =
@@ -44,8 +44,15 @@ function main(): void {
   const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
   mkdirSync(outDir, { recursive: true });
   const target = join(outDir, "entry.txt");
-  writeFileSync(target, `${line}\n`, { encoding: "utf8", mode: 0o644 });
+  const expected = `${line}\n`;
+  writeFileSync(target, expected, { encoding: "utf8", mode: 0o644 });
   chmodSync(target, 0o644);
+  // Round-trip check: what landed on disk must be exactly the line we
+  // validated, nothing more and nothing less.
+  const onDisk = readFileSync(target, { encoding: "utf8" });
+  if (onDisk !== expected) {
+    fail("written file does not match the validated line");
+  }
   console.log(`wrote ${codePoints(line).length} characters to ${target}`);
 }
 
